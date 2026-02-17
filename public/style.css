@@ -5,53 +5,25 @@ body {
     color: white;
 }
 
+.light {
+    background-color: #f2f3f5;
+    color: black;
+}
+
 .container {
     display: grid;
     grid-template-columns: 200px 200px 1fr 250px;
     height: 100vh;
 }
 
-/* Login */
-.login-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-.login-box {
-    background: #2b2d31;
-    padding: 40px;
-    border-radius: 12px;
-    text-align: center;
-}
-
-.login-box input {
-    padding: 10px;
-    width: 200px;
-    margin: 10px 0;
-}
-
-.login-box button {
-    padding: 10px 20px;
-    background: #5865F2;
-    border: none;
-    color: white;
-    cursor: pointer;
-}
-
-/* Sidebar */
-.sidebar {
-    background: #2b2d31;
+.sidebar, .channels, .members {
     padding: 15px;
     overflow-y: auto;
 }
 
-.channels {
-    background: #313338;
-    padding: 15px;
-    overflow-y: auto;
-}
+.sidebar { background: #2b2d31; }
+.channels { background: #313338; }
+.members { background: #2b2d31; }
 
 .chat {
     display: flex;
@@ -61,6 +33,8 @@ body {
 .chat-header {
     padding: 15px;
     background: #313338;
+    display: flex;
+    justify-content: space-between;
 }
 
 .messages {
@@ -74,7 +48,17 @@ body {
     padding: 8px;
     background: #2b2d31;
     border-radius: 8px;
-    animation: fadeIn 0.2s ease-in;
+    position: relative;
+}
+
+.message button {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    background: red;
+    border: none;
+    color: white;
+    cursor: pointer;
 }
 
 .chat-input {
@@ -96,9 +80,39 @@ body {
     cursor: pointer;
 }
 
-/* Members */
-.members {
+input, textarea {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 8px;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
     background: #2b2d31;
+    padding: 20px;
+    border-radius: 12px;
+    width: 300px;
+}
+
+.hidden {
+    display: none;
+}
+
+.logs {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 300px;
+    height: 100%;
+    background: #202225;
     padding: 15px;
     overflow-y: auto;
 }
@@ -107,13 +121,4 @@ li {
     list-style: none;
     margin: 5px 0;
     cursor: pointer;
-}
-
-li:hover {
-    color: #5865F2;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
 }
