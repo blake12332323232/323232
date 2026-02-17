@@ -1,192 +1,173 @@
-require("dotenv").config();
+// server.js
 const express = require("express");
-const session = require("express-session");
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
-const SQLite = require("better-sqlite3");
+const path = require("path");
+const { Client, GatewayIntentBits } = require("discord.js");
 const WebSocket = require("ws");
-const http = require("http");
+const sqlite3 = require("sqlite3").verbose();
+require("dotenv").config();
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-app.use(express.json());
-app.use(express.static("public"));
-
-app.use(session({
-    secret: process.env.ACCESS_CODE,
-    resave: false,
-    saveUninitialized: false
-}));
-
-// ===== DATABASE =====
-
-const db = new SQLite("database.sqlite");
-db.prepare(`
-CREATE TABLE IF NOT EXISTS logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    action TEXT,
-    timestamp TEXT
-)
-`).run();
-
-// ===== BOT =====
-
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent
-    ]
-});
-
-client.login(process.env.BOT_TOKEN);
-
-client.once("ready", () => {
-    console.log("God Tier Ready:", client.user.tag);
-});
-
-// ===== REAL-TIME MESSAGE STREAM =====
-
-client.on("messageCreate", msg => {
-    const data = JSON.stringify({
-        type: "newMessage",
-        channelId: msg.channel.id,
-        author: msg.author.username,
-        content: msg.content
-    });
-
-    wss.clients.forEach(ws => {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(data);
-        }
-    });
-});
-
-// ===== AUTH =====
-
-app.post("/login", (req, res) => {
-    if (req.body.code === process.env.ACCESS_CODE) {
-        req.session.auth = true;
-        return res.json({ success: true });
-    }
-    res.json({ success: false });
-});
-
-function auth(req, res, next) {
-    if (!req.session.auth) return res.redirect("/login.html");
-    next();
-}
-
-// ===== SERVERS LIST =====
-
-app.get("/guilds", auth, async (req, res) => {
-    const guilds = client.guilds.cache.map(g => ({
-        id: g.id,
-        name: g.name
-    }));
-    res.json(guilds);
-});
-
-// ===== CHANNELS =====
-
-app.get("/channels/:guildId", auth, async (req, res) => {
-    const guild = await client.guilds.fetch(req.params.guildId);
-    const channels = await guild.channels.fetch();
-    res.json(
-        channels.filter(c => c.isTextBased())
-        .map(c => ({ id: c.id, name: c.name }))
-    );
-});
-
-// ===== SEND MESSAGE =====
-
-app.post("/send/:channelId", auth, async (req, res) => {
-    const channel = await client.channels.fetch(req.params.channelId);
-    await channel.send(req.body.message);
-    log("Sent Message");
-    res.json({ success: true });
-});
-
-// ===== EMBED BUILDER =====
-
-app.post("/embed/:channelId", auth, async (req, res) => {
-    const channel = await client.channels.fetch(req.params.channelId);
-
-    const embed = new EmbedBuilder()
-        .setTitle(req.body.title)
-        .setDescription(req.body.description)
-        .setColor(req.body.color || 0x5865F2);
-
-    if (req.body.footer)
-        embed.setFooter({ text: req.body.footer });
-
-    if (req.body.thumbnail)
-        embed.setThumbnail(req.body.thumbnail);
-
-    if (req.body.fields)
-        req.body.fields.forEach(f =>
-            embed.addFields({ name: f.name, value: f.value, inline: true })
-        );
-
-    await channel.send({ embeds: [embed] });
-    log("Sent Embed");
-    res.json({ success: true });
-});
-
-// ===== MEMBER MANAGEMENT =====
-
-app.get("/members/:guildId", auth, async (req, res) => {
-    const guild = await client.guilds.fetch(req.params.guildId);
-    const members = await guild.members.fetch();
-
-    res.json(members.map(m => ({
-        id: m.id,
-        username: m.user.username
-    })));
-});
-
-app.post("/kick/:guildId/:userId", auth, async (req, res) => {
-    const guild = await client.guilds.fetch(req.params.guildId);
-    await guild.members.kick(req.params.userId);
-    log("Kicked Member");
-    res.json({ success: true });
-});
-
-// ===== COMMAND SYSTEM =====
-
-const commands = {
-    ping: async (guild) => {
-        if (guild.systemChannel)
-            await guild.systemChannel.send("Pong from God Tier!");
-    }
-};
-
-app.post("/execute/:guildId/:command", auth, async (req, res) => {
-    const guild = await client.guilds.fetch(req.params.guildId);
-    const cmd = req.params.command;
-
-    if (commands[cmd]) {
-        await commands[cmd](guild);
-        log("Executed Command: " + cmd);
-        return res.json({ success: true });
-    }
-
-    res.json({ success: false });
-});
-
-// ===== LOGGING =====
-
-function log(action) {
-    db.prepare("INSERT INTO logs (action, timestamp) VALUES (?, ?)")
-      .run(action, new Date().toISOString());
-}
-
-app.get("/logs", auth, (req, res) => {
-    const rows = db.prepare("SELECT * FROM logs ORDER BY id DESC").all();
-    res.json(rows);
-});
-
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("God Tier Running"));
+const ACCESS_CODE = process.env.ACCESS_CODE;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+
+// --- Discord Bot Setup ---
+const bot = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+bot.login(BOT_TOKEN);
+
+bot.on("ready", () => {
+  console.log(`Bot logged in as ${bot.user.tag}`);
+});
+
+// --- SQLite Database Setup ---
+const db = new sqlite3.Database("database.sqlite");
+db.run(`CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action TEXT,
+  timestamp TEXT
+)`);
+
+// --- WebSocket Server ---
+const wss = new WebSocket.Server({ noServer: true });
+let sockets = [];
+
+wss.on("connection", (ws) => {
+  sockets.push(ws);
+  ws.on("close", () => {
+    sockets = sockets.filter(s => s !== ws);
+  });
+});
+
+// Broadcast function
+function broadcast(data) {
+  sockets.forEach(ws => ws.send(JSON.stringify(data)));
+}
+
+// --- Express Middleware ---
+app.use(express.json());
+
+// --- Serve static frontend ---
+app.use(express.static(path.join(__dirname, "public")));
+
+// --- Login Route (simple access code) ---
+app.post("/login", (req, res) => {
+  const { code } = req.body;
+  if (code === ACCESS_CODE) res.json({ success: true });
+  else res.status(401).json({ success: false });
+});
+
+// --- Redirect / to login page ---
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// --- API Routes ---
+
+// Get all guilds the bot is in
+app.get("/guilds", (req, res) => {
+  const guilds = bot.guilds.cache.map(g => ({ id: g.id, name: g.name }));
+  res.json(guilds);
+});
+
+// Get members of a guild
+app.get("/members/:guildId", async (req, res) => {
+  const guild = bot.guilds.cache.get(req.params.guildId);
+  if (!guild) return res.status(404).json([]);
+  await guild.members.fetch(); // fetch all members
+  const members = guild.members.cache.map(m => ({
+    id: m.id,
+    username: m.user.username
+  }));
+  res.json(members);
+});
+
+// Get channels of a guild
+app.get("/channels/:guildId", (req, res) => {
+  const guild = bot.guilds.cache.get(req.params.guildId);
+  if (!guild) return res.status(404).json([]);
+  const channels = guild.channels.cache
+    .filter(c => c.isTextBased())
+    .map(c => ({ id: c.id, name: c.name }));
+  res.json(channels);
+});
+
+// Send message to channel
+app.post("/send/:channelId", async (req, res) => {
+  const channel = bot.channels.cache.get(req.params.channelId);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  await channel.send(req.body.message);
+  broadcast({ type: "newMessage", channelId: channel.id, author: bot.user.username, content: req.body.message });
+
+  db.run("INSERT INTO logs(action,timestamp) VALUES(?,?)",
+    [`Sent message to #${channel.name}`, new Date().toISOString()]);
+  res.json({ success: true });
+});
+
+// Kick member
+app.post("/kick/:guildId/:userId", async (req, res) => {
+  const guild = bot.guilds.cache.get(req.params.guildId);
+  if (!guild) return res.status(404).json({ error: "Guild not found" });
+  try {
+    const member = await guild.members.fetch(req.params.userId);
+    await member.kick();
+    db.run("INSERT INTO logs(action,timestamp) VALUES(?,?)",
+      [`Kicked ${member.user.tag}`, new Date().toISOString()]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Ban member
+app.post("/ban/:guildId/:userId", async (req, res) => {
+  const guild = bot.guilds.cache.get(req.params.guildId);
+  if (!guild) return res.status(404).json({ error: "Guild not found" });
+  try {
+    const member = await guild.members.fetch(req.params.userId);
+    await member.ban();
+    db.run("INSERT INTO logs(action,timestamp) VALUES(?,?)",
+      [`Banned ${member.user.tag}`, new Date().toISOString()]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Send embed
+app.post("/embed/:channelId", async (req, res) => {
+  const channel = bot.channels.cache.get(req.params.channelId);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  const { title, description, color, footer } = req.body;
+  await channel.send({ embeds: [{ title, description, color, footer: { text: footer } }] });
+  db.run("INSERT INTO logs(action,timestamp) VALUES(?,?)",
+    [`Sent embed to #${channel.name}`, new Date().toISOString()]);
+  res.json({ success: true });
+});
+
+// Execute slash command (basic)
+app.post("/execute/:guildId/:command", async (req, res) => {
+  // You can expand this to actually run real slash commands via Discord API
+  db.run("INSERT INTO logs(action,timestamp) VALUES(?,?)",
+    [`Executed command /${req.params.command}`, new Date().toISOString()]);
+  res.json({ success: true });
+});
+
+// Get admin logs
+app.get("/logs", (req, res) => {
+  db.all("SELECT * FROM logs ORDER BY id DESC LIMIT 50", [], (err, rows) => {
+    if (err) return res.status(500).json([]);
+    res.json(rows);
+  });
+});
+
+// --- WebSocket Upgrade for real-time messages ---
+const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.on("upgrade", (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
