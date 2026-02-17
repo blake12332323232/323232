@@ -1,31 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>God Tier Control</title>
+    <title>Discord Overlord Panel</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
+    <!-- Sidebar -->
     <div class="sidebar">
         <h2>👑 Servers</h2>
         <ul id="guildList"></ul>
         <hr>
         <button onclick="toggleTheme()">Toggle Theme</button>
+        <button onclick="openLogs()">Admin Logs</button>
+        <button onclick="openCommandPanel()">Slash Command</button>
     </div>
 
+    <!-- Channels -->
     <div class="channels">
         <h2>📂 Channels</h2>
         <input type="text" placeholder="Search channels..." oninput="filterChannels(this.value)">
         <ul id="channelList"></ul>
     </div>
 
+    <!-- Main Chat -->
     <div class="chat">
 
         <div class="chat-header">
             <span id="channelTitle">Select Channel</span>
-            <button onclick="openEmbedBuilder()">Embed</button>
+            <div>
+                <button onclick="openEmbedBuilder()">Embed</button>
+            </div>
         </div>
 
         <div id="messages" class="messages"></div>
@@ -37,6 +44,7 @@
 
     </div>
 
+    <!-- Members -->
     <div class="members">
         <h2>👥 Members</h2>
         <input type="text" placeholder="Search members..." oninput="filterMembers(this.value)">
@@ -45,7 +53,7 @@
 
 </div>
 
-<!-- EMBED BUILDER MODAL -->
+<!-- Embed Builder Modal -->
 <div id="embedModal" class="modal hidden">
     <div class="modal-content">
         <h2>Embed Builder</h2>
@@ -58,13 +66,26 @@
     </div>
 </div>
 
-<!-- ADMIN LOGS PANEL -->
-<div id="logsPanel" class="logs hidden">
-    <h2>Admin Logs</h2>
-    <div id="logsContainer"></div>
-    <button onclick="closeLogs()">Close</button>
+<!-- Admin Logs Modal -->
+<div id="logsPanel" class="modal hidden">
+    <div class="modal-content logsContent">
+        <h2>Admin Logs</h2>
+        <div id="logsContainer"></div>
+        <button onclick="closeLogs()">Close</button>
+    </div>
 </div>
 
-<script src="app.js"></script>
+<!-- Slash Command Modal -->
+<div id="commandPanel" class="modal hidden">
+    <div class="modal-content">
+        <h2>Slash Command Console</h2>
+        <input id="commandName" placeholder="/command">
+        <input id="commandArgs" placeholder="Arguments JSON">
+        <button onclick="executeCommand()">Execute</button>
+        <button onclick="closeCommandPanel()">Close</button>
+    </div>
+</div>
+
 </body>
+<script src="app.js"></script>
 </html>
