@@ -1,10 +1,12 @@
 let selectedGuild = null;
 let selectedChannel = null;
+let channelsCache = [];
+let membersCache = [];
+
 let ws = new WebSocket(`ws://${location.host}`);
 
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
-
     if (data.type === "newMessage" && data.channelId === selectedChannel) {
         addMessage(data.author, data.content);
     }
@@ -33,12 +35,14 @@ async function selectGuild(guildId) {
 
 async function loadChannels(guildId) {
     const res = await fetch(`/channels/${guildId}`);
-    const channels = await res.json();
+    channelsCache = await res.json();
+    renderChannels(channelsCache);
+}
 
+function renderChannels(listData) {
     const list = document.getElementById("channelList");
     list.innerHTML = "";
-
-    channels.forEach(c => {
+    listData.forEach(c => {
         const li = document.createElement("li");
         li.innerText = "#" + c.name;
         li.onclick = () => selectChannel(c.id, c.name);
@@ -46,24 +50,45 @@ async function loadChannels(guildId) {
     });
 }
 
-function selectChannel(channelId, name) {
-    selectedChannel = channelId;
+function filterChannels(search) {
+    renderChannels(channelsCache.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase())
+    ));
+}
+
+function selectChannel(id, name) {
+    selectedChannel = id;
     document.getElementById("channelTitle").innerText = "#" + name;
     document.getElementById("messages").innerHTML = "";
 }
 
 async function loadMembers(guildId) {
     const res = await fetch(`/members/${guildId}`);
-    const members = await res.json();
+    membersCache = await res.json();
+    renderMembers(membersCache);
+}
 
+function renderMembers(listData) {
     const list = document.getElementById("memberList");
     list.innerHTML = "";
 
-    members.forEach(m => {
+    listData.forEach(m => {
         const li = document.createElement("li");
-        li.innerText = m.username;
+        li.innerHTML = `${m.username}
+            <button onclick="kickMember('${m.id}')">Kick</button>`;
         list.appendChild(li);
     });
+}
+
+function filterMembers(search) {
+    renderMembers(membersCache.filter(m =>
+        m.username.toLowerCase().includes(search.toLowerCase())
+    ));
+}
+
+async function kickMember(userId) {
+    await fetch(`/kick/${selectedGuild}/${userId}`, { method: "POST" });
+    alert("Member kicked.");
 }
 
 async function sendMessage() {
@@ -84,6 +109,32 @@ function addMessage(author, content) {
     div.className = "message";
     div.innerHTML = `<strong>${author}</strong>: ${content}`;
     document.getElementById("messages").appendChild(div);
+}
+
+function openEmbedBuilder() {
+    document.getElementById("embedModal").classList.remove("hidden");
+}
+
+function closeEmbed() {
+    document.getElementById("embedModal").classList.add("hidden");
+}
+
+async function sendEmbed() {
+    await fetch(`/embed/${selectedChannel}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            title: embedTitle.value,
+            description: embedDesc.value,
+            color: parseInt(embedColor.value || "5865F2", 16),
+            footer: embedFooter.value
+        })
+    });
+    closeEmbed();
+}
+
+function toggleTheme() {
+    document.body.classList.toggle("light");
 }
 
 loadGuilds();
