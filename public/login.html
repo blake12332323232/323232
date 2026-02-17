@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>God Tier Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-body">
+
+<div class="login-box">
+    <h1>👑 GOD TIER ACCESS</h1>
+    <input type="password" id="code" placeholder="Enter Access Code">
+    <button onclick="login()">Enter</button>
+    <p id="error"></p>
+</div>
+
+<script>
+async function login() {
+    const code = document.getElementById("code").value;
+
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        window.location.href = "/dashboard.html";
+    } else {
+        document.getElementById("error").innerText = "Invalid Code";
+    }
+}
+</script>
+
+</body>
+</html>
