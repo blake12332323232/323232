@@ -1,30 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>God Tier Dashboard</title>
+    <title>God Tier Control</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
-    <!-- Sidebar -->
     <div class="sidebar">
         <h2>👑 Servers</h2>
         <ul id="guildList"></ul>
+        <hr>
+        <button onclick="toggleTheme()">Toggle Theme</button>
     </div>
 
-    <!-- Channels -->
     <div class="channels">
         <h2>📂 Channels</h2>
+        <input type="text" placeholder="Search channels..." oninput="filterChannels(this.value)">
         <ul id="channelList"></ul>
     </div>
 
-    <!-- Main Chat -->
     <div class="chat">
 
         <div class="chat-header">
             <span id="channelTitle">Select Channel</span>
+            <button onclick="openEmbedBuilder()">Embed</button>
         </div>
 
         <div id="messages" class="messages"></div>
@@ -36,12 +37,32 @@
 
     </div>
 
-    <!-- Members -->
     <div class="members">
         <h2>👥 Members</h2>
+        <input type="text" placeholder="Search members..." oninput="filterMembers(this.value)">
         <ul id="memberList"></ul>
     </div>
 
+</div>
+
+<!-- EMBED BUILDER MODAL -->
+<div id="embedModal" class="modal hidden">
+    <div class="modal-content">
+        <h2>Embed Builder</h2>
+        <input id="embedTitle" placeholder="Title">
+        <textarea id="embedDesc" placeholder="Description"></textarea>
+        <input id="embedColor" placeholder="Hex Color (5865F2)">
+        <input id="embedFooter" placeholder="Footer">
+        <button onclick="sendEmbed()">Send Embed</button>
+        <button onclick="closeEmbed()">Close</button>
+    </div>
+</div>
+
+<!-- ADMIN LOGS PANEL -->
+<div id="logsPanel" class="logs hidden">
+    <h2>Admin Logs</h2>
+    <div id="logsContainer"></div>
+    <button onclick="closeLogs()">Close</button>
 </div>
 
 <script src="app.js"></script>
