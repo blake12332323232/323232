@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>God Tier Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>👑 Servers</h2>
+        <ul id="guildList"></ul>
+    </div>
+
+    <!-- Channels -->
+    <div class="channels">
+        <h2>📂 Channels</h2>
+        <ul id="channelList"></ul>
+    </div>
+
+    <!-- Main Chat -->
+    <div class="chat">
+
+        <div class="chat-header">
+            <span id="channelTitle">Select Channel</span>
+        </div>
+
+        <div id="messages" class="messages"></div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Send message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+
+    </div>
+
+    <!-- Members -->
+    <div class="members">
+        <h2>👥 Members</h2>
+        <ul id="memberList"></ul>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
